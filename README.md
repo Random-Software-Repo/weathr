@@ -6,6 +6,7 @@ conditions and 7 day forecast for any locations serviced by the U.S. NWS.
 
 The seven day forecast is presented in columns as will fit on your terminal:
 ```
+$weathr
 Isla Vista, CA
         54°F
    This Afternoon         Tonight             Tuesday          Tuesday Night       New Year's Day     Wednesday Night
