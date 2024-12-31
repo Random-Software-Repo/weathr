@@ -34,5 +34,5 @@ weathr -l <decimal latitude>,<decimal longitude>
 weathr
 ```
 
-weathr will cache the responses from the NWS as reload them as necessry.
+weathr will cache the responses from the NWS as reload them as necessary.
 
