@@ -549,14 +549,14 @@ fn get_features_property(prop:&serde_json::Value, key:&str) -> String
 	return empty;
 }
 
-fn get_features_property_value(prop:&serde_json::Value, key:&str, key2:&str) -> String
+fn get_features_property_value(prop:&serde_json::Value, index:usize, key:&str, key2:&str) -> String
 {
 	let empty = String::from("");
 	//"features" "0" "id"
 
 	//let features:&Value = &prop["features"];
 
-	let feature = &prop["features"][0];
+	let feature = &prop["features"][index];
 	if *feature != Value::Null
 	{
 		let fproperties = &feature["properties"];
@@ -624,8 +624,14 @@ fn print_current_temperature(x:&str, y:&str, output_unit:&str)
 					Err(e)=>{error!("Error parsing observations json:{}", e);process::exit(1)},
 				};
 		//get_features_property_value_all(&observations_json,"temperature", "value");
-		let mut temp = get_features_property_value(&observations_json,"temperature", "value");
-		let mut sunit = get_features_property_value(&observations_json,"temperature", "unitCode");
+		let mut index=0 as usize;
+		let mut temp = get_features_property_value(&observations_json,index,"temperature", "value");
+		while (index < 10) && (temp == "")
+		{
+			index = index +1;
+			temp = get_features_property_value(&observations_json,index,"temperature", "value");
+		}
+		let mut sunit = get_features_property_value(&observations_json,index, "temperature", "unitCode");
 		//let p = unit.split("wmoUnit:deg");
 		if let Some((_prefix, unit)) = sunit.split_once(":deg")
 		{
