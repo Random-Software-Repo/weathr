@@ -43,15 +43,37 @@ fn get_var(key:&str) -> String
 }
 fn get_config_dir() -> String
 {
+	// Will return $HOME/.config/weathr and create the sub-directories of
+	// ".config/weathr" if they don't exist. Otherwise will return "/dev/null"
+
+	let dev_null = String::from("/dev/null");
 	let home = get_var("HOME").to_owned();
 	if home == ""
 	{
-		// for now, the error condition if $HOME is undefined 
-		// is to use the (unixish) bit bucket.
-		return String::from("/dev/null");
+		return dev_null;
 	}
-	let dir = format!("{}/.config/weathr",home);
-	return dir
+	let config_base_dir=format!("{}/.config",home);
+	let config_base_dir_path = Path::new(config_base_dir.as_str());
+	if !config_base_dir_path.exists()
+	{
+		match fs::create_dir(config_base_dir_path)
+		{
+			Ok(o)=> o,
+			Err(e)=>{error!("Error creating \"{}\":{}",config_base_dir,e);return dev_null},
+		};
+	}
+
+	let config_dir = format!("{}/weathr",config_base_dir);
+	let config_dir_path = Path::new(config_dir.as_str());
+	if !config_dir_path.exists()
+	{
+		match fs::create_dir(config_dir_path)
+		{
+			Ok(o)=> o,
+			Err(e)=>{error!("Error creating \"{}\":{}",config_dir,e);return dev_null},
+		};
+	}
+	return config_dir
 }
 
 fn get_config_file_name() -> String
@@ -64,6 +86,9 @@ fn get_config_file_name() -> String
 
 fn cache_response(url:&str, expires:&str, body:&str)->bool
 {
+	// the cache responses will be saved in:
+	//			$HOME/.config/weathr/<URL>/<EXPIRATION DATE>
+
 	let config_dir = get_config_dir();
 	let config_dir_path = Path::new(config_dir.as_str());
 	if !config_dir_path.exists()
@@ -74,6 +99,10 @@ fn cache_response(url:&str, expires:&str, body:&str)->bool
 			Err(e)=>{error!("Error creating \"{}\":{}",config_dir_path.display(),e);return false},
 		};
 	}
+	// the only character in the URLs that is not file-system safe (at least for unix-ish
+	// file systems) is the '/'. we'll replace that with th unicode visually similar 
+	// character '╱' so that we can simply use the URL as the directory in which to cache
+	// the response. This make it easy to find here, and when browsing those directories.
 	let fs_safe_url = url.replace("/","╱");
 	let cache_dir = format!("{}/{}",config_dir,fs_safe_url);
 	let cache_dir_path = Path::new(cache_dir.as_str());
@@ -428,7 +457,7 @@ fn load_config(url:&str, file:&str) -> serde_json::Value
 		config = match fs::read_to_string(file)
 					{
 						Ok(data)=>data,
-						Err(e)=>{error!("Error reading config file \"{}\":{}",file, e);process::exit(1)},
+						Err(e)=>{error!("Error reading config file \"{}\":{}\n\nIf this is the first time you've run weathr, you must supply the latitude and longitude of your location using the \"-l\" option. Run \"weathr -h\" for more instructions.",file, e);process::exit(1)},
 					};
 		//trace!("config:\n{}",config);
 	}
