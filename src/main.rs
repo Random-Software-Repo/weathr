@@ -20,7 +20,7 @@ fn usage()
 	printwrap::print_wrap(5,0,"Options:");
 	printwrap::print_wrap(10,30,"-h | --help                   This usage information.");
 	printwrap::print_wrap(10,30,"-l | --latlong <lat>,<long>   Latitude and Longitude in decimal format of the location you want the weather for. After weathr has been run once with valid lat/long, it will cache that information and subsequent calls to weathr can omit the latitude and longitude but will continue to display (and update) weather for that location. To change location, simply provide a new lat/long.");
-	printwrap::print_wrap(10,30,"--purge                       Will delete all cached files for weathr. When next running weathr you will have to provide a location with the \"-l\" option.");
+	printwrap::print_wrap(10,30,"--purge                       Will delete all expired cached files for weathr.");
 	printwrap::print_wrap(10,30,"-v | -vv                      Print verbose or very verbose information during the operation of weathr.");
 	printwrap::print_wrap(10,30,"-w | -ww                      Prints output in 30 or 40 character columns.");
 	printwrap::print_wrap(10,30,"                              By default, weathr prints forecast infomation in 20 character wide columns. It will print as many columns as your terminal window can completely show. Each column will correspond to a half-day forecast (one each for day and night). The wider your terminal window is, the more forecast columns you will see.");
@@ -77,6 +77,7 @@ fn get_config_dir() -> String
 	return config_dir
 }
 
+
 fn purge_config()
 {
 	// use println! not logging as this will be called before logging is setup.
@@ -84,16 +85,56 @@ fn purge_config()
 	let config_dir_path = Path::new(config_dir.as_str());
 	if config_dir_path.exists()
 	{
-		println!("Purging config directory: \"{}\"", config_dir);
-		match fs::remove_dir_all(config_dir_path)
+		let entries = match fs::read_dir(config_dir_path)
 		{
-			Ok(o)=> o,
-			Err(e)=>{println!("Error purging config directory: \"{}\":{}",config_dir,e)},
+			Err(_e)=> return,
+			Ok(entries)=> entries,
 		};
-	}
-	else
-	{
-		println!("Can't purge config directory \"{}\" as it doesn't exist.", config_dir);
+		for possible_entry in entries
+		{
+			let entry = match possible_entry
+				{
+					Err(_e)=>continue,
+					Ok(entry)=>entry,
+				};
+			if entry.path().is_dir()
+			{
+				let mut entry_count = 0;
+				let mut deletion_count = 0;
+				let dir_entries = match fs::read_dir(entry.path())
+				{
+					Err(_e)=> continue,
+					Ok(dir_entries)=> dir_entries,
+				};
+				for possible_dir_entry in dir_entries
+				{
+					entry_count = entry_count +1;
+					let file = match possible_dir_entry
+						{
+							Err(_e)=>continue,
+							Ok(file)=>file,
+						};
+					if file.path().is_file()
+					{
+						if !file_valid(&file.path())
+						{
+							deletion_count = deletion_count +1;
+						}
+					}
+				}
+				if (entry_count == 0) || (entry_count == deletion_count)
+				{
+					// entry_count == 0 : the directory had no files in it
+					// entry_count = deletion_count : every file in the directory was deleted.
+					// in these cases, remove the directory.
+					match fs::remove_dir(entry.path())
+							{
+								Err(e)=>println!("Error deleting empty directory \"{}\":{}", entry.path().display(),e),
+								Ok(o)=>o,
+							};
+				}
+			}
+		}
 	}
 }
 
@@ -149,6 +190,42 @@ fn cache_response(url:&str, expires:&str, body:&str)->bool
 	return true;
 }
 
+fn file_valid(file_path:&Path)->bool
+{
+	let now = Local::now();
+	let name = match file_path.file_name()
+		{
+			None=>"",
+			Some(s)=>match s.to_str(){None=>"",Some(st)=>st,},
+		};
+	let file_name = String::from(name);
+	// convert file_name to a date
+	let file_date = match DateTime::parse_from_rfc2822(file_name.as_str())
+					{
+						Ok(f)=>f,
+						Err(_e)=>{return false},
+					};
+	//match SystemTime::now().duration_since(file_date) 
+	let delta = now.signed_duration_since(file_date);
+	/*****/
+	// if duration is more than 0 seconds, 
+	// the file_date is in the past and the 
+	// file has expired, and should be deleted
+	if delta > TimeDelta::seconds(0)
+	{
+		// The files are saved with the expiration date as the file name
+		// If the current time is more than 0 seconds later than the file_date time
+		// the cache has expired and should be deleted.
+		match fs::remove_file(file_path)
+				{
+					Err(e)=>println!("Error deleting expired file \"{}\":{}", file_path.display(),e),
+					Ok(o)=>o,
+				};
+		return false;
+	}
+	return true
+}
+
 fn get_cached_response(url:&str) -> String
 {
 	// Inspects the cached responses, and if one matches the url specified
@@ -169,7 +246,6 @@ fn get_cached_response(url:&str) -> String
 			// iterate over files in this directory.
 			// if any exist with a file name in the past, expired, delete them
 			// if any file exists with a file name of now or in the future, read it and return that data.
-			let now = Local::now();
 			let paths = match fs::read_dir(cache_dir_path)
 						{
 							Ok(paths)=>paths,
@@ -182,31 +258,7 @@ fn get_cached_response(url:&str) -> String
 							Ok(p1)=>p1,
 							Err(e)=>{error!("Error reading path {}",e); return data},
 						};
-				let file_name = String::from(match p1.file_name().to_str(){Some(s)=>s,None=>""});
-				// convert file_name to a date
-				let file_date = match DateTime::parse_from_rfc2822(file_name.as_str())
-								{
-									Ok(f)=>f,
-									Err(e)=>{error!("error parsing date \"{}\":{}",file_name,e);return data},
-								};
-				//match SystemTime::now().duration_since(file_date) 
-				let delta = now.signed_duration_since(file_date);
-				/*****/
-				// if duration is more than 0 seconds, 
-				// the file_date is in the past and the 
-				// file has expired, and should be deleted
-				if delta > TimeDelta::seconds(0)
-				{
-					// The files are saved with the expiration date as the file name
-					// If the current time is more than 0 seconds later than the file_date time
-					// the cache has expired and should be deleted.
-					match fs::remove_file(p1.path())
-							{
-								Err(e)=>error!("Error deleting expired file \"{}\":{}", p1.path().display(),e),
-								Ok(o)=>o,
-							};
-				}
-				else
+				if file_valid(&p1.path())
 				{
 					// file is valid, read data and return that.
 					data= match fs::read_to_string(p1.path())
@@ -215,7 +267,7 @@ fn get_cached_response(url:&str) -> String
 									Ok(data)=>{debug!("Returning Cached Data.");data},
 								};
 				}
-				debug!("****    Name: \"{}\"",file_name);
+				//debug!("****    Name: \"{}\"",file_name);
 			}
 		}
 		else
