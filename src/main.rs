@@ -20,13 +20,14 @@ fn usage()
 	printwrap::print_wrap(5,0,"Options:");
 	printwrap::print_wrap(10,30,"-h | --help                   This usage information.");
 	printwrap::print_wrap(10,30,"-l | --latlong <lat>,<long>   Latitude and Longitude in decimal format of the location you want the weather for. After weathr has been run once with valid lat/long, it will cache that information and subsequent calls to weathr can omit the latitude and longitude but will continue to display (and update) weather for that location. To change location, simply provide a new lat/long.");
+	printwrap::print_wrap(10,30,"--purge                       Will delete all cached files for weathr. When next running weathr you will have to provide a location with the \"-l\" option.");
 	printwrap::print_wrap(10,30,"-v | -vv                      Print verbose or very verbose information during the operation of weathr.");
 	printwrap::print_wrap(10,30,"-w | -ww                      Prints output in 30 or 40 character columns.");
 	printwrap::print_wrap(10,30,"                              By default, weathr prints forecast infomation in 20 character wide columns. It will print as many columns as your terminal window can completely show. Each column will correspond to a half-day forecast (one each for day and night). The wider your terminal window is, the more forecast columns you will see.");
 	printwrap::print_wrap(5,0,"");
 	printwrap::print_wrap(5,0,"The NWS API requires a location in decimal degrees of latitude and longitude. Neither weathr nor the NWS provide any mechanism to convert a \"normal\" street address or location to latitude and longitude. You can fairly easily get these values, however, with easily accessible services. Google Earth will show the latitude and longitude of the cursor in the lower right corner of the screen. Both Google Maps and Open Street Maps will show the lat/long of the center of the map in the URL / Address Bar after zooming in at least a little.");
 	printwrap::print_wrap(5,0,"");
-	printwrap::print_wrap(5,0,"Weathr makes several calls to the NWS API. The responses to these calls will be cached in ~/.config/weathr. Each response will have it's own expiration date provided in the response headers from the API call. Weathr will always abide by these suggestions.");
+	printwrap::print_wrap(5,0,"Weathr makes several calls to the NWS API. The responses to these calls will be cached in ~/.config/weathr. Each response will have it's own expiration date provided in the response headers from the API call. Weathr will always abide by these suggestions. While weathr caches files, expired files will be deleted automatically for the current location only. If you use weathr with multiple locations, cached reponses for the other locations will not get automatically purged. See --purge above.");
 	
 	process::exit(2);
 }
@@ -74,6 +75,26 @@ fn get_config_dir() -> String
 		};
 	}
 	return config_dir
+}
+
+fn purge_config()
+{
+	// use println! not logging as this will be called before logging is setup.
+	let config_dir = get_config_dir();
+	let config_dir_path = Path::new(config_dir.as_str());
+	if config_dir_path.exists()
+	{
+		println!("Purging config directory: \"{}\"", config_dir);
+		match fs::remove_dir_all(config_dir_path)
+		{
+			Ok(o)=> o,
+			Err(e)=>{println!("Error purging config directory: \"{}\":{}",config_dir,e)},
+		};
+	}
+	else
+	{
+		println!("Can't purge config directory \"{}\" as it doesn't exist.", config_dir);
+	}
 }
 
 fn get_config_file_name() -> String
@@ -770,6 +791,11 @@ fn main()
 							longitude=&args[i+1];
 							skip_argument = true;
 						}
+					}
+				"--purge" =>
+					{
+						purge_config();
+						process::exit(0);
 					}
 				"-v" =>
 					{
