@@ -432,11 +432,9 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 	let columns = get_terminal_width() / column_width as usize;
 	// these vars should definitely be some sort of string buffer, but this works for now
 	let mut name=String::from("");
-	let mut short=String::from("");
-	let mut short_line2 = String::from("");
-	let mut short_line2_bool=false;
-	let mut short_line3 = String::from("");
-	let mut short_line3_bool=false;
+	const SHORT_LINE_MAX:usize = 6;
+	let mut short_lines:[String;SHORT_LINE_MAX] = [String::from(""),String::from(""),String::from(""),String::from(""),String::from(""),String::from("")];
+	let mut short_line_count:usize = 0;
 	let mut temp=String::from("");
 	//let mut rain=String::from("");
 	let mut wind=String::from("");
@@ -462,30 +460,23 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 			let mut linec=0;
 			for line in strings
 			{
-				if linec==0
+				if linec < SHORT_LINE_MAX
 				{
-					short = format!("{}{:^column_width$}",short,line);
+					let short_line = format!("{}{:^column_width$}",short_lines[linec],line);
+					short_lines[linec] = short_line;
+					if short_line_count < (linec+1)
+					{
+						short_line_count = linec+1;
+					}
 				}
-				else if linec==1
-				{
-					short_line2_bool = true;
-					short_line2 = format!("{}{:^column_width$}", short_line2,line);
-				}
-				else if linec==2
-				{
-					short_line3_bool = true;
-					short_line3 = format!("{}{:^column_width$}", short_line3,line);
-				}
-				// so, right now, this can only handle two lines of short-forecast.
-				// text longer than will fit will be omitted from the output. using 
-				// the -w command line option (wide, or -ww very wide) will help.
 				linec=linec+1;
 			}
-			if linec==1
+			while linec < SHORT_LINE_MAX
 			{
-				// was only one element, so we need to pad short2 & short3
-				short_line2 = format!("{}{:^column_width$}", short_line2,"");
-				short_line3 = format!("{}{:^column_width$}", short_line3,"");
+				// pads out all unused lines
+				let short_line = format!("{}{:^column_width$}",short_lines[linec],"");
+				short_lines[linec] = short_line;
+				linec = linec + 1;
 			}
 			let ttemp=format!("{} {}°{}",temp_label,ptemperature,ptemperatureunit);
 			temp = format!("{}{:^column_width$}",temp,ttemp);
@@ -495,16 +486,10 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 		}
 	}
 	println!("{}",name);
-	println!("{}",short);
-	if short_line2_bool
+
+	for n in 0..short_line_count
 	{
-		// only print line two if we need to.
-		println!("{}",short_line2)
-	}
-	if short_line3_bool
-	{
-		// only print line two if we need to.
-		println!("{}",short_line3)
+		println!("{}",short_lines[n]);
 	}
 	println!("{}",temp);
 	println!("{}",wind);
