@@ -8,7 +8,7 @@ The seven day forecast is presented in columns as will fit on your terminal:
 ```
 $weathr
 Isla Vista, CA
-        54°F
+Most recent observation at  5:48pm: 49°F
    This Afternoon         Tonight             Tuesday          Tuesday Night       New Year's Day     Wednesday Night
        Sunny           Partly Cloudy           Sunny            Mostly Clear           Sunny           Partly Cloudy
    High near 64°F      Low near 41°F       High near 63°F      Low near 46°F       High near 67°F      Low near 48°F
