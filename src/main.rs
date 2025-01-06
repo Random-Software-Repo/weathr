@@ -717,11 +717,12 @@ fn get_features_property_value(prop:&serde_json::Value, index:usize, key:&str, k
 
 fn format_time(timestamp:&str)->String
 {
-	let error=String::from("--unknown--");
+	let error=String::from("");
 	let time_in = match DateTime::parse_from_rfc3339(timestamp)
 					{
 						Ok(f)=>f,
-						Err(e)=>{error!("error parsing date \"{}\":{}",timestamp,e);return error},
+						//Err(e)=>{error!("error parsing date \"{}\":{}",timestamp,e);return error},
+						Err(_e)=>return error,
 					};
 	let time_local: DateTime<Local> = DateTime::from(time_in);
 	let time_only = time_local.format("%l:%M%P");
@@ -764,39 +765,46 @@ fn print_current_temperature(x:&str, y:&str, output_unit:&str)
 			timestamp = get_features_property_value(&observations_json,index,"timestamp", "");
 			time_representation = format_time(timestamp.as_str());
 		}
-		let mut sunit = get_features_property_value(&observations_json,index, "temperature", "unitCode");
-		//let p = unit.split("wmoUnit:deg");
-		if let Some((_prefix, unit)) = sunit.split_once(":deg")
+		if temp != ""
 		{
-			if output_unit != unit
+			let mut sunit = get_features_property_value(&observations_json,index, "temperature", "unitCode");
+			//let p = unit.split("wmoUnit:deg");
+			if let Some((_prefix, unit)) = sunit.split_once(":deg")
 			{
-				let mut ftemp:f32 = match temp.parse() 
-						{
-							Err(_error) => -1000.0,//{error!("first parsing temperature \"{}\" is invalid:{}",temp,error);0.0},
-							Ok(ftemp) => ftemp,
-						};
-				if (unit == "C") && (output_unit == "F")
+				if output_unit != unit
 				{
-					ftemp = ((ftemp / 5.0) * 9.0) + 32.0;
-					sunit=String::from("F");
-				}
-				else
-				{
-					ftemp = ((ftemp - 32.0) / 9.0) * 5.0;
-					sunit=String::from("C");
-				}
-				if ftemp < -1000.0
-				{
-					temp = String::from("(missing)");
-				}
-				else
-				{
-					temp = format!("{:.0}",ftemp);
+					let mut ftemp:f32 = match temp.parse() 
+							{
+								Err(_error) => -1000.0,//{error!("first parsing temperature \"{}\" is invalid:{}",temp,error);0.0},
+								Ok(ftemp) => ftemp,
+							};
+					if (unit == "C") && (output_unit == "F")
+					{
+						ftemp = ((ftemp / 5.0) * 9.0) + 32.0;
+						sunit=String::from("F");
+					}
+					else
+					{
+						ftemp = ((ftemp - 32.0) / 9.0) * 5.0;
+						sunit=String::from("C");
+					}
+					if ftemp < -1000.0
+					{
+						temp = String::from("(missing)");
+					}
+					else
+					{
+						temp = format!("{:.0}",ftemp);
+					}
 				}
 			}
+			let temperature = format!("Most recent observation at {}: {}°{}", time_representation, temp, sunit);
+			println!("{:^20}",temperature);
 		}
-		let temperature = format!("Most recent observation at {}: {}°{}", time_representation, temp, sunit);
-		println!("{:^20}",temperature);
+		else
+		{
+			println!("No current weather observations.");
+		}
 	}
 	else
 	{
