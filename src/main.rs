@@ -435,6 +435,8 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 	let mut short=String::from("");
 	let mut short_line2 = String::from("");
 	let mut short_line2_bool=false;
+	let mut short_line3 = String::from("");
+	let mut short_line3_bool=false;
 	let mut temp=String::from("");
 	//let mut rain=String::from("");
 	let mut wind=String::from("");
@@ -469,6 +471,11 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 					short_line2_bool = true;
 					short_line2 = format!("{}{:^column_width$}", short_line2,line);
 				}
+				else if linec==2
+				{
+					short_line3_bool = true;
+					short_line3 = format!("{}{:^column_width$}", short_line3,line);
+				}
 				// so, right now, this can only handle two lines of short-forecast.
 				// text longer than will fit will be omitted from the output. using 
 				// the -w command line option (wide, or -ww very wide) will help.
@@ -476,8 +483,9 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 			}
 			if linec==1
 			{
-				// was only one element, so we need to pad short2
+				// was only one element, so we need to pad short2 & short3
 				short_line2 = format!("{}{:^column_width$}", short_line2,"");
+				short_line3 = format!("{}{:^column_width$}", short_line3,"");
 			}
 			let ttemp=format!("{} {}°{}",temp_label,ptemperature,ptemperatureunit);
 			temp = format!("{}{:^column_width$}",temp,ttemp);
@@ -492,6 +500,11 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 	{
 		// only print line two if we need to.
 		println!("{}",short_line2)
+	}
+	if short_line3_bool
+	{
+		// only print line two if we need to.
+		println!("{}",short_line3)
 	}
 	println!("{}",temp);
 	println!("{}",wind);
