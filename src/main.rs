@@ -456,7 +456,7 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 
 			name = format!("{}{:^column_width$}",name,pname);
 
-			let strings = printwrap::split(column_width, pshortforecast);
+			let strings = printwrap::split(column_width-1, pshortforecast);
 			let mut linec=0;
 			for line in strings
 			{
