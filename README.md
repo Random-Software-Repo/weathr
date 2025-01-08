@@ -7,13 +7,13 @@ conditions and 7 day forecast for any locations serviced by the U.S. NWS.
 The seven day forecast is presented in columns as will fit on your terminal:
 ```
 $weathr
-Isla Vista, CA
-Most recent observation at  5:48pm: 49°F
-   This Afternoon         Tonight             Tuesday          Tuesday Night       New Year's Day     Wednesday Night
-       Sunny           Partly Cloudy           Sunny            Mostly Clear           Sunny           Partly Cloudy
-   High near 64°F      Low near 41°F       High near 63°F      Low near 46°F       High near 67°F      Low near 48°F
-     5 mph ESE         5 to 10 mph NE         5 mph SE           5 mph WSW            5 mph NW           5 mph NNW
-```
+Waimanalo Beach, HI
+Most recent observation from Kaneohe, Marine Corps Air Station(PHNG) at 11:57am: 79°F
+       Today              Tonight             Thursday         Thursday Night          Friday           Friday Night
+   Scattered Rain      Scattered Rain    Scattered Showers   Scattered Showers   Scattered Showers     Scattered Rain
+      Showers             Showers        And Thunderstorms   And Thunderstorms   And Thunderstorms        Showers
+   High near 79°F      Low near 73°F       High near 78°F      Low near 72°F       High near 79°F      Low near 73°F
+   1 to 10 mph W       8 to 15 mph N      12 to 15 mph NE     13 to 16 mph ENE       18 mph ENE       17 to 21 mph ENE```
 
 ## Installing
 

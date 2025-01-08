@@ -591,29 +591,6 @@ fn make_config_url(latlong:&str)->String
 	return url
 }
 
-fn make_latlong(latitude: &str, longitude: &str, latlong: &str) -> String
-{
-	let mut ll = String::from(latlong);
-	debug!("latitude:\"{}\"",latitude);
-	debug!("longitude:\"{}\"",longitude);
-	debug!("latlong:\"{}\"",latlong);
-	if (latlong == "") && ((latitude!="") || (longitude != ""))
-	{
-		if latitude==""
-		{
-			error!("Latitude not set but Longitude is set. Both Latitude and Longtiude are required.");
-			process::exit(30);
-		}
-		if longitude == ""
-		{
-			error!("Longitude not set but Latitude is set. Both Latitude and Longtiude are required.");
-			process::exit(30);
-		}
-		ll = format!("{},{}",latitude,longitude);
-	}
-	return ll
-}
-
 fn get_key(json:&serde_json::Value, key:&str) -> String
 {
 	let empty = String::from("");
@@ -733,10 +710,10 @@ fn format_time(timestamp:&str)->String
 	return format!("{}",time_only);
 }
 
-fn print_current_temperature(x:&str, y:&str, output_unit:&str)
+fn print_current_temperature(office:&str, x:&str, y:&str, output_unit:&str)
 {
 	debug!("GridX:{}, GridY:{}", x, y);
-	let stations_url=format!("https://api.weather.gov/gridpoints/TWC/{},{}/stations",x,y);
+	let stations_url=format!("https://api.weather.gov/gridpoints/{}/{},{}/stations",office,x,y);
 	let stations_string=call_nws_api(stations_url.as_str());
 	let stations_json: serde_json::Value = match serde_json::from_str(stations_string.as_str())
 			{
@@ -827,8 +804,6 @@ fn main()
 	let config_url:String;
 	let mut forecast_file="";
 	let mut skip_argument=false;
-	let mut latitude="";
-	let mut longitude="";
 	let mut latlong=String::from("");
 	let mut column_width:usize=20;
 	//let mut forecast=String::from("");
@@ -872,22 +847,6 @@ fn main()
 							skip_argument = true;
 						}
 					}
-				"--lat" =>
-					{
-						if (i+1) < end
-						{
-							latitude=&args[i+1];
-							skip_argument = true;
-						}
-					}
-				"--long" =>
-					{
-						if (i+1) < end
-						{
-							longitude=&args[i+1];
-							skip_argument = true;
-						}
-					}
 				"-v" =>
 					{
 						verbose = log::Level::Debug;
@@ -920,11 +879,11 @@ fn main()
 		Err(e) =>{println!("Failed to create stderr logger:{}",e)},
 	}
 
-	latlong = make_latlong(latitude, longitude, latlong.as_str());
 	config_url = make_config_url(latlong.as_str());
 	debug!("config url:\"{}\"",config_url);
 
 	let properties_json = load_config(config_url.as_str(), config_file.as_str());
+	let office = get_key(&properties_json,"gridId");
 	let gridx = get_key(&properties_json, "gridX");
 	let gridy = get_key(&properties_json, "gridY");
 	let forecast_url = get_key(&properties_json, "forecast");
@@ -932,7 +891,7 @@ fn main()
 
 	let forecast_json = load_forecast(forecast_url.as_str(),forecast_file);
 	print_location(properties_json);
-	print_current_temperature(gridx.as_str(), gridy.as_str(), "F");
+	print_current_temperature(office.as_str(), gridx.as_str(), gridy.as_str(), "F");
 	print_forecast(forecast_json,column_width);
 	purge_config();
 }
