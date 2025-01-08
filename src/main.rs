@@ -293,6 +293,19 @@ fn print_status(s:&str)
 	}
 }
 
+fn print_erase_line()
+{
+	// prints ansi "erase line"
+	//               \e [ 2 K
+	let word:u32 = 0x1B5B324B;
+	let bytes = word.to_be_bytes();
+	match io::stdout().write_all(&bytes)
+	{
+		Ok(_) => return,
+		Err(_) => return,
+	}
+}
+
 fn call_nws_api(request_url:&str) -> String
 {
 	debug!("call_nws_aps \"{}\"", request_url);
@@ -327,10 +340,7 @@ fn call_nws_api(request_url:&str) -> String
 				Ok(s)=>s,
 			};
 		trace!("call_nws_output:\"{}\"",s);
-		//let short_line = format!("{}{:^column_width$}",short_lines[linec],"");
-		let blank_width = status_message.len();
-		let blank = format!("{:^blank_width$}","");
-		print_status(blank.as_str());
+		print_erase_line();
 		cache_response(request_url, expires, s);
 		return String::from(s)
 	}
