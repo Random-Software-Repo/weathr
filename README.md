@@ -13,7 +13,8 @@ Most recent observation from Kaneohe, Marine Corps Air Station(PHNG) at 11:57am:
    Scattered Rain      Scattered Rain    Scattered Showers   Scattered Showers   Scattered Showers     Scattered Rain
       Showers             Showers        And Thunderstorms   And Thunderstorms   And Thunderstorms        Showers
    High near 79°F      Low near 73°F       High near 78°F      Low near 72°F       High near 79°F      Low near 73°F
-   1 to 10 mph W       8 to 15 mph N      12 to 15 mph NE     13 to 16 mph ENE       18 mph ENE       17 to 21 mph ENE```
+   1 to 10 mph W       8 to 15 mph N      12 to 15 mph NE     13 to 16 mph ENE       18 mph ENE       17 to 21 mph ENE
+```
 
 ## Installing
 
