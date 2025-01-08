@@ -26,16 +26,19 @@ sudo make install
 ## Usage
 
 ### First use
+
 ```
 weathr -l <decimal latitude>,<decimal longitude>
 ```
-For the output example above:
+### For the output example above
+
 ```
 weathr -l 21.344,-157.703
 ```
 
 
 ### Subsequent uses
+
 ```
 weathr
 ```
