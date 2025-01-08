@@ -407,23 +407,17 @@ fn save_config(data:&str, file:&str) -> bool
 
 fn get_location(pjson: &serde_json::Value, key: &str)->String
 {
-	let mut location="";
-	//			let pname = match p["name"].as_str() {None=>"",Some(s)=>s};
 	debug!("get_location \"{}\"",key);
-	debug!("get_location \"{}\"",*pjson);
-	let rl = &pjson["relativeLocation"];
+
+	let rl = get_element(pjson, "relativeLocation");
 	if *rl != Value::Null
 	{
 			debug!("got relativeLocation:\n{}", rl);
-			let p2: &Value = &rl["properties"];
+			let p2 = get_element(rl, "properties");
 			if *p2 != Value::Null
 			{
 				debug!("got second properties:\n{}", p2);
-				location = match p2[key].as_str()
-					{
-						None=>"",
-						Some(c)=>c,
-					};
+				return get_key(p2, key)
 			}
 			else
 			{
@@ -434,7 +428,7 @@ fn get_location(pjson: &serde_json::Value, key: &str)->String
 	{
 		debug!("failed to get relativeLocation.");
 	}
-	return String::from(location)
+	return String::from("")
 }
 
 fn get_city(pjson: &serde_json::Value)->String
@@ -620,121 +614,107 @@ fn make_latlong(latitude: &str, longitude: &str, latlong: &str) -> String
 	return ll
 }
 
-fn get_property(prop:&serde_json::Value, key:&str)->String
-{
-	if prop[key].is_string()
-	{
-		let val = match prop[key].as_str()
-				{
-					None=> {error!("Error getting \"{}\" from properties as a string.",key);process::exit(25)},
-					Some(f)=>String::from(f),
-				};
-		return val;
-	}
-	else if prop[key].is_number()
-	{
-		let val = match prop[key].as_number()
-				{
-					None=> {error!("Error getting \"{}\" from properties as a number.",key);process::exit(25)},
-					Some(f)=>f,
-				};
-		return format!("{}",val);
-	}
-	return String::from("");
-}
-
-fn get_features_property(prop:&serde_json::Value,index:usize, key:&str) -> String
+fn get_key(json:&serde_json::Value, key:&str) -> String
 {
 	let empty = String::from("");
-	//"features" "0" "id"
-
-	//let features:&Value = &prop["features"];
-
-	let s1 = &prop["features"][index];
-	if *s1 != Value::Null
+	if *json != Value::Null
 	{
-		//id = match s1[key].as_str() {None=>"",Some(s)=>s};
-		if s1[key].is_string()
+		if json[key].is_string()
 		{
-			let val = match s1[key].as_str()
+			let val = match json[key].as_str()
 					{
-						None=> {error!("Error getting \"{}\" from properties as a string.",key);process::exit(25)},
+						None=> {error!("Error getting \"{}\" from properties as a string.",key);return empty},
 						Some(f)=>String::from(f),
 					};
 			return val;
 		}
-		else if s1[key].is_number()
+		else if json[key].is_number()
 		{
-			let val = match s1[key].as_number()
+			let val = match json[key].as_number()
 					{
-						None=> {error!("Error getting \"{}\" from properties as a number.",key);process::exit(25)},
+						None=> {error!("Error getting \"{}\" from properties as a number.",key);return empty},
 						Some(f)=>f,
 					};
 			return format!("{}",val);
 		}
 	}
-	return empty;
+	return empty
 }
 
-fn get_features_property_value(prop:&serde_json::Value, index:usize, key:&str, key2:&str) -> String
+fn get_element<'a,'b>(json:&'a serde_json::Value, key:&'b str) -> &'a serde_json::Value
+{
+	if *json != Value::Null
+	{
+		return &json[key];
+	}
+	return &Value::Null
+}
+fn get_indexed_element<'a,'b>(json:&'a serde_json::Value,key:&'b str,index:usize) -> &'a serde_json::Value
+{
+	if *json != Value::Null
+	{
+		return &json[key][index];
+	}
+	return &Value::Null
+}
+
+fn get_features_properties(prop:&serde_json::Value,index:usize) -> &serde_json::Value
+{
+	let features = get_indexed_element(prop,"features",index);
+	if *features != Value::Null
+	{
+		return &features["properties"];
+	}
+	return &Value::Null
+}
+
+fn get_features_properties_key(prop:&serde_json::Value,index:usize, key:&str) -> String
+{
+	let empty = String::from("");
+	let properties = get_features_properties(prop,index);
+	if *properties != Value::Null
+	{
+		return get_key(properties,key);
+	}
+	return empty
+}
+
+fn get_features_key(prop:&serde_json::Value,index:usize, key:&str) -> String
 {
 	let empty = String::from("");
 	//"features" "0" "id"
 
 	//let features:&Value = &prop["features"];
 
-	let feature = &prop["features"][index];
-	if *feature != Value::Null
+	let s1 = get_indexed_element(prop,"features",index);
+	if *s1 != Value::Null
 	{
-		let fproperties = &feature["properties"];
-		if *fproperties == Value::Null
-						{
-							error!("Error getting features/properties");
-							process::exit(23);
-						}
-		let mut s2 = &fproperties[key];
-		if *s2 != Value::Null
-		{
-			if key2 != ""
-			{
-				s2 = &s2[key2];
-			}
-			if *s2 != Value::Null
-			{
-				debug!("s2:\n{}",s2);
-				//id = match s1[key].as_str() {None=>"",Some(s)=>s};
-				if s2.is_string()
-				{
-					let val = match s2.as_str()
-							{
-								None=> {error!("Error getting \"{}\" from properties as a string.",key2);process::exit(25)},
-								Some(f)=>String::from(f),
-							};
-					return val;
-				}
-				else if s2.is_number()
-				{
-					let val = match s2.as_number()
-							{
-								None=> {error!("Error getting \"{}\" from properties as a number.",key2);process::exit(25)},
-								Some(f)=>f,
-							};
-					return format!("{}",val);
-				}
-			}
-			else
-			{
-				debug!("second s2 \"{}\" is null",key);
-			}
-		}
-		else
-		{
-			debug!("first s2 \"{}\" is null",key);
-		}
+		return get_key(s1,key)
+	}
+	return empty;
+}
+
+fn get_features_properties_value<'a, 'b>(prop:&'a serde_json::Value, index:usize, value:&'b str) -> &'a serde_json::Value
+{
+	let fproperties = get_features_properties(prop, index);
+	if *fproperties != Value::Null
+	{
+		return &fproperties[value];
+	}
+	return &Value::Null
+}
+
+fn get_features_properties_value_key(prop:&serde_json::Value, index:usize, value:&str, key:&str) -> String
+{
+	let empty = String::from("");
+	let vprop = get_features_properties_value(prop,index,value);
+	if *vprop != Value::Null
+	{
+		return get_key(vprop,key)
 	}
 	else
 	{
-		debug!("s1 is null");
+		debug!("get_features_properties_value_key vprop \"{}\" is null",value);
 	}
 	return empty;
 }
@@ -750,8 +730,6 @@ fn format_time(timestamp:&str)->String
 					};
 	let time_local: DateTime<Local> = DateTime::from(time_in);
 	let time_only = time_local.format("%l:%M%P");
-//	let time_utc = time_in.format("%l:%M");
-//	return format!("{} ({})",time_only, time_utc);
 	return format!("{}",time_only);
 }
 
@@ -765,10 +743,13 @@ fn print_current_temperature(x:&str, y:&str, output_unit:&str)
 				Ok(json)=> json,
 				Err(e)=>{error!("Error parsing stations json:{}", e);process::exit(1)},
 			};
-	let station_id = get_features_property(&stations_json,0, "id");
+	//let station_id = get_features_property(&stations_json,0, "id");
+	let station_id = get_features_properties_key(&stations_json,0, "stationIdentifier");
+	let station_name = get_features_properties_key(&stations_json,0, "name");
+	let station_url = get_features_key(&stations_json,0,"id");
 	if station_id !=""
 	{
-		let observations_url=format!("{}/observations",station_id);
+		let observations_url=format!("{}/observations",station_url);
 		debug!("Observations url:\"{}\"",observations_url);
 
 		let observations_string = call_nws_api(observations_url.as_str());
@@ -779,19 +760,19 @@ fn print_current_temperature(x:&str, y:&str, output_unit:&str)
 				};
 		//get_features_property_value_all(&observations_json,"temperature", "value");
 		let mut index=0 as usize;
-		let mut temp = get_features_property_value(&observations_json,index,"temperature", "value");
-		let mut timestamp = get_features_property_value(&observations_json,index,"timestamp", "");
+		let mut temp = get_features_properties_value_key(&observations_json,index,"temperature", "value");
+		let mut timestamp = get_features_properties_key(&observations_json,index,"timestamp");
 		let mut time_representation = format_time(timestamp.as_str());
 		while (index < 10) && (temp == "")
 		{
 			index = index +1;
-			temp = get_features_property_value(&observations_json,index,"temperature", "value");
-			timestamp = get_features_property_value(&observations_json,index,"timestamp", "");
+			temp = get_features_properties_value_key(&observations_json,index,"temperature", "value");
+			timestamp = get_features_properties_key(&observations_json,index,"timestamp");
 			time_representation = format_time(timestamp.as_str());
 		}
 		if temp != ""
 		{
-			let mut sunit = get_features_property_value(&observations_json,index, "temperature", "unitCode");
+			let mut sunit = get_features_properties_value_key(&observations_json,index, "temperature", "unitCode");
 			//let p = unit.split("wmoUnit:deg");
 			if let Some((_prefix, unit)) = sunit.split_once(":deg")
 			{
@@ -822,7 +803,7 @@ fn print_current_temperature(x:&str, y:&str, output_unit:&str)
 					}
 				}
 			}
-			let temperature = format!("Most recent observation at {}: {}°{}", time_representation, temp, sunit);
+			let temperature = format!("Most recent observation from {}({}) at {}: {}°{}", station_name, station_id, time_representation, temp, sunit);
 			println!("{:^20}",temperature);
 		}
 		else
@@ -944,9 +925,9 @@ fn main()
 	debug!("config url:\"{}\"",config_url);
 
 	let properties_json = load_config(config_url.as_str(), config_file.as_str());
-	let gridx = get_property(&properties_json, "gridX");
-	let gridy = get_property(&properties_json, "gridY");
-	let forecast_url = get_property(&properties_json, "forecast");
+	let gridx = get_key(&properties_json, "gridX");
+	let gridy = get_key(&properties_json, "gridY");
+	let forecast_url = get_key(&properties_json, "forecast");
 
 
 	let forecast_json = load_forecast(forecast_url.as_str(),forecast_file);
