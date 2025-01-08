@@ -6,7 +6,7 @@ conditions and 7 day forecast for any locations serviced by the U.S. NWS.
 
 The seven day forecast is presented in columns as will fit on your terminal:
 ```
-$weathr
+$ weathr
 Waimanalo Beach, HI
 Most recent observation from Kaneohe, Marine Corps Air Station(PHNG) at 11:57am: 79°F
        Today              Tonight             Thursday         Thursday Night          Friday           Friday Night
@@ -28,6 +28,10 @@ sudo make install
 ### First use
 ```
 weathr -l <decimal latitude>,<decimal longitude>
+```
+For the output example above:
+```
+weathr -l 21.344,-157.703
 ```
 
 
