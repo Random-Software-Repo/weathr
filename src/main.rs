@@ -1,6 +1,6 @@
 extern crate printwrap;
 use log::*;
-use std::{env,fs,process,path::Path};
+use std::{io,io::Write,env,fs,process,path::Path};
 use minreq;
 use serde_json::{Value};
 use terminal_size::{Width, Height, terminal_size};
@@ -283,6 +283,16 @@ fn get_cached_response(url:&str) -> String
 	return data;
 }
 
+fn print_status(s:&str)
+{
+	print!("{}\r", s);
+	match io::stdout().flush()
+	{
+		Ok(_) => return,
+		Err(_) => return,
+	}
+}
+
 fn call_nws_api(request_url:&str) -> String
 {
 	debug!("call_nws_aps \"{}\"", request_url);
@@ -295,6 +305,8 @@ fn call_nws_api(request_url:&str) -> String
 	else
 	{
 		debug!("Call Not Cached!");
+		let status_message = format!("Calling \"{}\"", request_url);
+		print_status(status_message.as_str());
 		let o = match minreq::get(request_url)
 				// nws api requires a user-agent header. doesn't matter what. anything will do, but is required.
 				.with_header("User-Agent", "weathr-app")
@@ -315,6 +327,10 @@ fn call_nws_api(request_url:&str) -> String
 				Ok(s)=>s,
 			};
 		trace!("call_nws_output:\"{}\"",s);
+		//let short_line = format!("{}{:^column_width$}",short_lines[linec],"");
+		let blank_width = status_message.len();
+		let blank = format!("{:^blank_width$}","");
+		print_status(blank.as_str());
 		cache_response(request_url, expires, s);
 		return String::from(s)
 	}
