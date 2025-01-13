@@ -18,9 +18,19 @@ Most recent observation from Kaneohe, Marine Corps Air Station(PHNG) at 11:57am:
 
 ## Installing
 
+You must have a rust toolchain installed prior to building weathr. You can install rust from:
+
+> https://www.rust-lang.org/learn/get-started
+
 ```
-make build
-sudo make install
+$ mkdir weathr-src
+$ cd weathr-src
+$ git clone https://github.com/Random-Software-Repo/nws
+$ git clone https://github.com/Random-Software-Repo/printwrap
+$ git clone https://github.com/Random-Software-Repo/weathr
+$ cd weathr
+$ make build
+$ sudo make install
 ```
 
 ## Usage
@@ -28,19 +38,19 @@ sudo make install
 ### First use
 
 ```
-weathr -l <decimal latitude>,<decimal longitude>
+$ weathr -l <decimal latitude>,<decimal longitude>
 ```
 ### For the output example above
 
 ```
-weathr -l 21.344,-157.703
+$ weathr -l 21.344,-157.703
 ```
 
 
 ### Subsequent uses
 
 ```
-weathr
+$ weathr
 ```
 
 weathr will cache the responses from the NWS as reload them as necessary.
