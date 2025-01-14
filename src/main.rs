@@ -21,6 +21,7 @@ fn usage()
 	printwrap::print_wrap(10,30,"-v | -vv                      Print verbose or very verbose information during the operation of weathr.");
 	printwrap::print_wrap(10,30,"-w | -ww                      Prints output in 30 or 40 character columns.");
 	printwrap::print_wrap(10,30,"                              By default, weathr prints forecast infomation in 20 character wide columns. It will print as many columns as your terminal window can completely show. Each column will correspond to a half-day forecast (one each for day and night). The wider your terminal window is, the more forecast columns you will see.");
+	printwrap::print_wrap(10,30,"--all                         Will print all 7 days of forecasts with multiple rows of columns until complete.");	
 	printwrap::print_wrap(5,0,"");
 	printwrap::print_wrap(5,0,"The NWS API requires a location in decimal degrees of latitude and longitude. Neither weathr nor the NWS provide any mechanism to convert a \"normal\" street address or location to latitude and longitude. You can fairly easily get these values, however, with easily accessible services. Google Earth will show the latitude and longitude of the cursor in the lower right corner of the screen. Both Google Maps and Open Street Maps will show the lat/long of the center of the map in the URL / Address Bar after zooming in at least a little.");
 	printwrap::print_wrap(5,0,"");
@@ -151,13 +152,14 @@ fn print_location(pjson: serde_json::Value)
 	println!("{}",location);
 }
 
-fn print_forecast( fjson : serde_json::Value, column_width:usize)
+fn print_forecast( fjson : serde_json::Value, column_width:usize, long:bool)
 {
-	//column_width = 20 as usize;
-	let columns = get_terminal_width() / column_width as usize;
-	// these vars should definitely be some sort of string buffer, but this works for now
-	let mut name=String::from("");
+	const MIN_COLUMN_WIDTH:usize = 20;
 	const SHORT_LINE_MAX:usize = 6;
+	const FORECAST_PERIODS:usize = 14;
+	let mut name=String::from("");
+	let columns = get_terminal_width() / if column_width < MIN_COLUMN_WIDTH {MIN_COLUMN_WIDTH}else{column_width};
+	let display_columns = if (columns > FORECAST_PERIODS)||long {FORECAST_PERIODS}else{columns};
 	let mut short_lines:[String;SHORT_LINE_MAX] = [String::from(""),String::from(""),String::from(""),String::from(""),String::from(""),String::from("")];
 	let mut short_line_count:usize = 0;
 	let mut temp=String::from("");
@@ -165,7 +167,7 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 	let mut wind=String::from("");
 	let properties: &Value = &fjson["properties"];
 	//let p1 = &properties["periods"][0];
-	for n in 0 .. columns
+	for n in 0 .. display_columns
 	{
 		let p = &properties["periods"][n];
 		if *p != Value::Null
@@ -208,16 +210,39 @@ fn print_forecast( fjson : serde_json::Value, column_width:usize)
 			//rain = format!("{}{:^column_width}",rain,p["name"]);
 			let wwind=format!("{} {}",pwindspeed,pwinddirection);
 			wind = format!("{}{:^column_width$}",wind,wwind);
+
+			if long 
+			{
+				if ((n % columns)==(columns-1)) || (n==(display_columns-1))
+				{
+					println!("{}",name);
+
+					for n in 0..short_line_count
+					{
+						println!("{}",short_lines[n]);
+					}
+					println!("{}",temp);
+					println!("{}",wind);
+					println!("");
+					name=String::from("");
+					for n in 0 .. SHORT_LINE_MAX {short_lines[n] = String::from("");}
+					temp=String::from("");
+					wind=String::from("");
+				}
+			}
 		}
 	}
-	println!("{}",name);
-
-	for n in 0..short_line_count
+	if !long
 	{
-		println!("{}",short_lines[n]);
+		println!("{}",name);
+
+		for n in 0..short_line_count
+		{
+			println!("{}",short_lines[n]);
+		}
+		println!("{}",temp);
+		println!("{}",wind);
 	}
-	println!("{}",temp);
-	println!("{}",wind);
 }
 
 
@@ -366,6 +391,7 @@ fn main()
 	let mut config_file=get_config_file_name();
 	let config_url:String;
 	let mut skip_argument=false;
+	let mut long = false;
 	let mut latlong=String::from("");
 	let mut column_width:usize=20;
 	//let mut forecast=String::from("");
@@ -417,6 +443,10 @@ fn main()
 					{
 						column_width=40;
 					}
+				"--all" =>
+					{
+						long=true;
+					}
 				_ =>
 					{
 						println!("Unknown argument \"{}\".",args[i]);
@@ -447,6 +477,6 @@ fn main()
 	let forecast_json = nws::nws::load_forecast(forecast_url.as_str());
 	print_location(properties_json);
 	print_current_temperature(office.as_str(), gridx.as_str(), gridy.as_str(), "F");
-	print_forecast(forecast_json,column_width);
+	print_forecast(forecast_json,column_width,long);
 	nws::nws::purge_config();
 }
